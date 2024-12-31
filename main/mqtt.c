@@ -23,8 +23,11 @@
 
 #include "secrets.h"
 
+#include <assert.h>
+
 static const char *TAG = "mqtt_tcp";
 
+static void (*the_callback)(int, int);
 
 static void log_error_if_nonzero(const char *message, int error_code)
 {
@@ -43,6 +46,33 @@ static void log_error_if_nonzero(const char *message, int error_code)
  * @param event_id The id for the received event.
  * @param event_data The data for the event, esp_mqtt_event_handle_t.
  */
+
+void test_grab_ints(int len, char* ptr)
+{
+    int num = 0;
+    int i = 0;
+    int real_loc = 0;
+    for (i=0; i<len; i++)
+    {
+        if (real_loc >= 64*3)
+        {
+            ESP_LOGE(TAG, "early exit - too many px");
+            return;
+        }
+        if (ptr[i] == ',')
+        {
+            /* printf("Number: %d\n", num); */
+            the_callback(real_loc++, num);
+            num = 0;
+        } else
+        {
+            num = num * 10 + (ptr[i] - '0');
+        }
+    }
+
+    the_callback(real_loc, num);
+}
+
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%" PRIi32 "", base, event_id);
@@ -77,6 +107,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
+        test_grab_ints(event->data_len, event->data);
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -108,8 +139,9 @@ static void mqtt_app_start(void)
     esp_mqtt_client_start(client);
 }
 
-void setup_mqtt(void)
+void setup_mqtt(void (*callback)(int, int))
 {
+    the_callback = callback;
     ESP_LOGI(TAG, "[APP] Startup..");
     ESP_LOGI(TAG, "[APP] Free memory: %" PRIu32 " bytes", esp_get_free_heap_size());
     ESP_LOGI(TAG, "[APP] IDF version: %s", esp_get_idf_version());

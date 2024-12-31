@@ -2,3 +2,6 @@ build/*
 main/build/*
 **/*/secrets.h
 sdkconf*
+secrets.json
+*.jpg
+.cache

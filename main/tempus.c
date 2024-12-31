@@ -20,6 +20,7 @@
 #include "secrets.h"
 #include "wifi.h"
 #include "mqtt.h"
+#include "led.h"
 
 /* #include "temperature.h" */
 /* temp_reader_app(); */
@@ -46,7 +47,8 @@ void app_main(void)
     ESP_LOGD(TAG, "main running");
 
     setup_wifi();
-    setup_mqtt();
+    setup_led();
+    setup_mqtt(set_led);
     /* setup_wifi(callback_for_wifi_done); */
 
     // how to stop this running and exiting? could block on wifi but really just want to chill and wait fo msg to come back.
