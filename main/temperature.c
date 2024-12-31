@@ -8,6 +8,7 @@
 #include "driver/i2c_master.h"
 #include "esp_log.h"
 
+// setting this all up to work with espressif esp32-wroom-32u
 static int chip_addr = 0x4a;
 static int data_addr = 0x00;
 static int reg_len = 2;
@@ -81,24 +82,22 @@ bool setup_i2c_temp(void)
     return true;
 }
 
-
 bool read_i2c_temp(uint8_t* data_ptr)
 {
     esp_err_t ret = i2c_master_transmit_receive(dev_handle, (uint8_t*)&data_addr, 1, data_ptr, reg_len, I2C_TOOL_TIMEOUT_VALUE_MS);
-    /* esp_err_t ret = i2c_master_transmit_receive(dev_handle, (uint8_t*)&data_addr, 1, data, reg_len, I2C_TOOL_TIMEOUT_VALUE_MS); */
 
     if (ret == ESP_OK) {
         return true;
 
-
     } else if (ret == ESP_ERR_TIMEOUT) {
         ESP_LOGW(TAG, "Bus is busy");
-        return false;
+    }
+    else
+    {
+        ESP_LOGW(TAG, "Read failed");
     }
 
-    ESP_LOGW(TAG, "Read failed");
+
     return false;
 
 }
-
-

@@ -1,13 +1,51 @@
 #include "wifi.h"
 
+/* #include "freertos/event_groups.h" */
+/* #include "esp_log.h" */
+/* #include <stdint.h> */
+
+// todo: filter this better
+#include <string.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/event_groups.h"
+#include "esp_system.h"
+#include "esp_wifi.h"
+#include "esp_event.h"
+#include "esp_log.h"
+#include "nvs_flash.h"
+#include "secrets.h"
+
+#include "lwip/err.h"
+#include "lwip/sys.h"
+
+
+#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA_WPA2_PSK
+#define EXAMPLE_ESP_MAXIMUM_RETRY 5
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
 
-static const char *TAG = "wifi station";
+
+// todo: what the fuck is this shit
+// going hunt and peck, think it's old, but
+// it doesnt require a H2E identifier.
+/* #if CONFIG_ESP_WPA3_SAE_PWE_HUNT_AND_PECK */
+#define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_HUNT_AND_PECK
+#define EXAMPLE_H2E_IDENTIFIER ""
+/* #elif CONFIG_ESP_WPA3_SAE_PWE_HASH_TO_ELEMENT */
+/* #define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_HASH_TO_ELEMENT */
+/* #define EXAMPLE_H2E_IDENTIFIER CONFIG_ESP_WIFI_PW_ID */
+/* #elif CONFIG_ESP_WPA3_SAE_PWE_BOTH */
+/* #define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_BOTH */
+/* #define EXAMPLE_H2E_IDENTIFIER CONFIG_ESP_WIFI_PW_ID */
+/* #endif */
+
+static const char *TAG = "wifi_station";
 
 static int s_retry_num = 0;
 
 
+static EventGroupHandle_t s_wifi_event_group;
 
 static void event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data)
@@ -30,11 +68,6 @@ static void event_handler(void* arg, esp_event_base_t event_base,
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
     }
 }
-
-void setup_wifi(EventGroupHandle_t wifi_handler)
-{
-}
-
 void wifi_init_sta(void)
 {
     s_wifi_event_group = xEventGroupCreate();
@@ -58,7 +91,6 @@ void wifi_init_sta(void)
                                                         &event_handler,
                                                         NULL,
                                                         &instance_got_ip));
-
     wifi_config_t wifi_config = {
         .sta = {
             .ssid = EXAMPLE_ESP_WIFI_SSID,
@@ -99,3 +131,9 @@ void wifi_init_sta(void)
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
     }
 }
+
+void setup_wifi()
+{
+    wifi_init_sta();
+}
+
